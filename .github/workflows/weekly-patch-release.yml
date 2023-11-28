@@ -1,0 +1,25 @@
+name: Generate weekly patch release
+on:
+  # Run every Monday at 8AM PST / 9AM PDT
+  schedule:
+    - cron: '0 16 * * MON'
+jobs:
+  generate-weekly-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get base/target versions
+        id: version
+        run: |
+          TOKEN=$(curl -k https://public.ecr.aws/token/ | jq -r '.token')
+          BASE=$(curl -k -H "Authorization: Bearer $TOKEN"  https://public.ecr.aws/v2/sagemaker/sagemaker-distribution/tags/list | jq '.tags | sort | reverse' | grep -vE ".*-.*-.*" | jq '.[2] | split("-") | .[0]' | tr -d '"')          
+          TARGET=$(printf $BASE | awk -F. '/[0-9]+\./{$NF++;print}' OFS=.)
+          echo "base=$BASE" >> $GITHUB_OUTPUT
+          echo "target=$TARGET" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v1
+        name: Checkout
+      - name: Call generate-release-artifacts workflow
+        uses: ./.github/workflows/generate-release-artifacts.yml@main
+        with:
+          release-type: "patch"
+          base-version: ${{steps.version.outputs.base}}
+          target-version: ${{steps.version.outputs.target}}

@@ -1,0 +1,80 @@
+name: Generate Release Artifacts
+
+on:
+  # Manually call
+  workflow_dispatch:
+    inputs:
+      release-type:
+        required: true
+        type: choice
+        description: Type of release
+        options:
+          - patch
+          - minor
+          - major
+      base-version:
+        required: true
+        description: Base version
+      target-version:
+        required: true
+        description: Target version
+  # Call from other workflow
+  workflow_run:
+    inputs:
+      release-type:
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      base-version:
+        required: true
+      target-version:
+        required: true
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+  generate-release-artifacts:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./environment.yml
+          environment-name: sagemaker-distribution
+      - name: Activate sagemaker-distribution
+        run: micromamba activate sagemaker-distribution
+      - name: Create new branch
+        run: git checkout -b ${{ github.event.inputs.release-type }}-release-${{github.event.inputs.target-version}}
+      - name: Generate artifacts
+        run: python ./src/main.py create-${{ github.event.inputs.release-type }}-version-artifacts --base-patch-version ${{ github.event.inputs.base-version }}
+      - name: Commit .in artifacts to branch
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add ./build_artifacts
+          git commit -m 'chore: Add build artifacts for ${{ github.event.inputs.target-version }} release'
+      - name: Build image
+        run: python ./src/main.py build --target-patch-version ${{steps.version.outputs.target}} --skip-tests
+      - name: Commit .out artifacts to branch
+        run: |
+          git add ./build_artifacts
+          git commit -m "chore: add post-build artifact files for ${{ github.event.inputs.target-version }} release"
+      - name: Push commits to branch
+        run: git push --set-upstream origin ${{ github.event.inputs.release-type }}-release-${{github.event.inputs.target-version}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate staleness report
+        run: python ./src/main.py generate-staleness-report --target-patch-version ${{steps.version.outputs.target}} >> STALENESS_REPORT.md
+      - name: Open PR with patch artifacts
+        run: |
+          gh pr create -H ${{ github.event.inputs.release-type }}-release-${{steps.version.outputs.target}} --title 'release: New ${{ github.event.inputs.release-type }} release v${{steps.version.outputs.target}}' --body 'Created by Github action'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
