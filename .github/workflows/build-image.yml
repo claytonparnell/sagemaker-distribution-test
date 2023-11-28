@@ -1,0 +1,78 @@
+name: Build New Image Version
+on:
+  # Manually call
+  workflow_dispatch:
+    inputs:
+      release-type:
+        required: true
+        type: choice
+        description: Type of release
+        options:
+          - patch
+          - minor
+          - major
+      base-version:
+        required: true
+        description: Base version
+      target-version:
+        required: true
+        description: Target version
+  # Call from other workflow
+  workflow_call:
+    inputs:
+      release-type:
+        type: string
+        required: true
+      base-version:
+        type: string
+        required: true
+      target-version:
+        type: string
+        required: true
+jobs:
+  call-codebuild-project:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+      id-token: write
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::428449107377:role/SMDistroUnitTestingRole
+          aws-region: us-west-2
+      - name: Run CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@v1
+        with:
+          project-name: cosmos-unit-testing
+          image-override: mambaorg/micromamba:jammy-cuda-11.8.0
+          buildspec-override: |
+            version: 0.2
+            phases:
+              pre_build:
+                commands:
+                  - apt-get update
+                  - apt-get install -y --no-install-recommends git docker.io
+                  - git config --global user.email "github-actions[bot]@users.noreply.github.com"
+                  - git config --global user.name "github-actions[bot]"
+                  - micromamba create -f environment.yml -n sagemaker-distribution -y
+                  - micromamba install -n sagemaker-distribution -c conda-forge -y gh
+                  # Start Docker - https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker-custom-image.html#sample-docker-custom-image-files
+                  - nohup dockerd --host=unix:///var/run/docker.sock --host=tcp://127.0.0.1:2375 --storage-driver=overlay2&
+                  - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
+              build:
+                commands:
+                  - echo Creating new branch for release
+                  - git checkout -b ${{ github.event.inputs.release-type }}-release-v${{github.event.inputs.target-version}}
+                  - echo Generate build artifacts
+                  - micromamba run -n sagemaker-distribution python ./src/main.py create-${{ github.event.inputs.release-type }}-version-artifacts --base-patch-version ${{ github.event.inputs.base-version }}
+                  - git add ./build_artifacts
+                  - "git commit -m 'chore: Generate build artifacts for ${{ github.event.inputs.target-version }} release'"
+                  - echo Building/Testing/Pushing Image
+                  - micromamba run -n sagemaker-distribution python ./src/main.py build --target-patch-version ${{ github.event.inputs.target-version }} --force --target-ecr-repo public.ecr.aws/sagemaker/sagemaker-distribution --region us-east-1 >> TEST_RESULTS.txt
+                  - micromamba run -n sagemaker-distribution python ./src/main.py generate-staleness-report --target-patch-version ${{github.event.inputs.target-version}} >> STALENESS_REPORT.md
+                  - "git commit -m 'chore: Add post-build artifact files for ${{ github.event.inputs.target-version }} release'"
+                  - "URL=$(micromamba run -n sagemaker-distribution gh pr create -H ${{github.event.inputs.release-type}}-release-${{github.event.inputs.target-version}} \
+                    --title 'release: New ${{ github.event.inputs.release-type }} release ${{ github.event.inputs.target-version }}' -F STALENESS_REPORT.md)"
+                  - micromamba run -n sagemaker-distribution gh pr comment $URL -F TEST_RESULTS.txt
