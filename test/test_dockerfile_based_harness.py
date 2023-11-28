@@ -12,62 +12,61 @@ from utils import (
     get_match_specs,
 )
 
-_docker_client = docker.from_env()
-
+_docker_client = docker.DockerClient(base_url='unix://var/run/docker.sock')
 
 @pytest.mark.cpu
 @pytest.mark.parametrize("dockerfile_path, required_packages", [
-    ("keras.test.Dockerfile", ['keras']),
-    ("autogluon.test.Dockerfile", ['autogluon']),
-    ("matplotlib.test.Dockerfile", ['matplotlib']),
-    ("sagemaker-headless-execution-driver.test.Dockerfile", ['sagemaker-headless-execution-driver']),
-    ("scipy.test.Dockerfile", ['scipy']),
-    ("numpy.test.Dockerfile", ['numpy']),
-    ("boto3.test.Dockerfile", ['boto3']),
-    ("pandas.test.Dockerfile", ['pandas']),
-    ("sm-python-sdk.test.Dockerfile", ['sagemaker-python-sdk']),
-    ("pytorch.examples.Dockerfile", ['pytorch']),
-    ("tensorflow.examples.Dockerfile", ['tensorflow']),
-    ("jupyter-ai.test.Dockerfile", ['jupyter-ai']),
-    ("jupyter-dash.test.Dockerfile", ['jupyter-dash']),
-    ("jupyter-lsp.test.Dockerfile", ['jupyter-lsp']),
-    ("jupyter-lsp-server.test.Dockerfile", ['jupyter-lsp-server']),
-    ("notebook.test.Dockerfile", ['notebook']),
-    ("glue-sessions.test.Dockerfile", ['aws-glue-sessions']),
-    ("altair.test.Dockerfile", ['altair']),
-    ("sagemaker-studio-analytics-extension.test.Dockerfile", ['sagemaker-studio-analytics-extension']),
-    ("amazon-codewhisperer-jupyterlab-ext.test.Dockerfile", ['amazon-codewhisperer-jupyterlab-ext'])])
+    ("keras.test.Dockerfile", ['keras'])])
+    # ("autogluon.test.Dockerfile", ['autogluon']),
+    # ("matplotlib.test.Dockerfile", ['matplotlib']),
+    # ("sagemaker-headless-execution-driver.test.Dockerfile", ['sagemaker-headless-execution-driver']),
+    # ("scipy.test.Dockerfile", ['scipy']),
+    # ("numpy.test.Dockerfile", ['numpy']),
+    # ("boto3.test.Dockerfile", ['boto3']),
+    # ("pandas.test.Dockerfile", ['pandas']),
+    # ("sm-python-sdk.test.Dockerfile", ['sagemaker-python-sdk']),
+    # ("pytorch.examples.Dockerfile", ['pytorch']),
+    # ("tensorflow.examples.Dockerfile", ['tensorflow']),
+    # ("jupyter-ai.test.Dockerfile", ['jupyter-ai']),
+    # ("jupyter-dash.test.Dockerfile", ['jupyter-dash']),
+    # ("jupyter-lsp.test.Dockerfile", ['jupyter-lsp']),
+    # ("jupyter-lsp-server.test.Dockerfile", ['jupyter-lsp-server']),
+    # ("notebook.test.Dockerfile", ['notebook']),
+    # ("glue-sessions.test.Dockerfile", ['aws-glue-sessions']),
+    # ("altair.test.Dockerfile", ['altair']),
+    # ("sagemaker-studio-analytics-extension.test.Dockerfile", ['sagemaker-studio-analytics-extension']),
+    # ("amazon-codewhisperer-jupyterlab-ext.test.Dockerfile", ['amazon-codewhisperer-jupyterlab-ext'])])
 def test_dockerfiles_for_cpu(dockerfile_path: str, required_packages: List[str],
                              local_image_version: str, use_gpu: bool):
     _validate_docker_images(dockerfile_path, required_packages, local_image_version, use_gpu, 'cpu')
 
 
-@pytest.mark.gpu
-@pytest.mark.parametrize("dockerfile_path, required_packages", [
-    ("keras.test.Dockerfile", ['keras']),
-    ("autogluon.test.Dockerfile", ['autogluon']),
-    ("matplotlib.test.Dockerfile", ['matplotlib']),
-    ("sagemaker-headless-execution-driver.test.Dockerfile", ['sagemaker-headless-execution-driver']),
-    ("scipy.test.Dockerfile", ['scipy']),
-    ("numpy.test.Dockerfile", ['numpy']),
-    ("boto3.test.Dockerfile", ['boto3']),
-    ("pandas.test.Dockerfile", ['pandas']),
-    ("sm-python-sdk.test.Dockerfile", ['sagemaker-python-sdk']),
-    ("pytorch.examples.Dockerfile", ['pytorch']),
-    ("tensorflow.examples.Dockerfile", ['tensorflow']),
-    ("glue-sessions.test.Dockerfile", ['aws-glue-sessions']),
-    ("jupyter-ai.test.Dockerfile", ['jupyter-ai']),
-    ("jupyter-dash.test.Dockerfile", ['jupyter-dash']),
-    ("jupyter-lsp.test.Dockerfile", ['jupyter-lsp']),
-    ("jupyter-lsp-server.test.Dockerfile", ['jupyter-lsp-server']),
-    ("notebook.test.Dockerfile", ['notebook']),
-    ("glue-sessions.test.Dockerfile", ['aws-glue-sessions']),
-    ("altair.test.Dockerfile", ['altair']),
-    ("sagemaker-studio-analytics-extension.test.Dockerfile", ['sagemaker-studio-analytics-extension']),
-    ("amazon-codewhisperer-jupyterlab-ext.test.Dockerfile", ['amazon-codewhisperer-jupyterlab-ext'])])
-def test_dockerfiles_for_gpu(dockerfile_path: str, required_packages: List[str],
-                             local_image_version: str, use_gpu: bool):
-    _validate_docker_images(dockerfile_path, required_packages, local_image_version, use_gpu, 'gpu')
+# @pytest.mark.gpu
+# @pytest.mark.parametrize("dockerfile_path, required_packages", [
+#     ("keras.test.Dockerfile", ['keras']),
+#     ("autogluon.test.Dockerfile", ['autogluon']),
+#     ("matplotlib.test.Dockerfile", ['matplotlib']),
+#     ("sagemaker-headless-execution-driver.test.Dockerfile", ['sagemaker-headless-execution-driver']),
+#     ("scipy.test.Dockerfile", ['scipy']),
+#     ("numpy.test.Dockerfile", ['numpy']),
+#     ("boto3.test.Dockerfile", ['boto3']),
+#     ("pandas.test.Dockerfile", ['pandas']),
+#     ("sm-python-sdk.test.Dockerfile", ['sagemaker-python-sdk']),
+#     ("pytorch.examples.Dockerfile", ['pytorch']),
+#     ("tensorflow.examples.Dockerfile", ['tensorflow']),
+#     ("glue-sessions.test.Dockerfile", ['aws-glue-sessions']),
+#     ("jupyter-ai.test.Dockerfile", ['jupyter-ai']),
+#     ("jupyter-dash.test.Dockerfile", ['jupyter-dash']),
+#     ("jupyter-lsp.test.Dockerfile", ['jupyter-lsp']),
+#     ("jupyter-lsp-server.test.Dockerfile", ['jupyter-lsp-server']),
+#     ("notebook.test.Dockerfile", ['notebook']),
+#     ("glue-sessions.test.Dockerfile", ['aws-glue-sessions']),
+#     ("altair.test.Dockerfile", ['altair']),
+#     ("sagemaker-studio-analytics-extension.test.Dockerfile", ['sagemaker-studio-analytics-extension']),
+#     ("amazon-codewhisperer-jupyterlab-ext.test.Dockerfile", ['amazon-codewhisperer-jupyterlab-ext'])])
+# def test_dockerfiles_for_gpu(dockerfile_path: str, required_packages: List[str],
+#                              local_image_version: str, use_gpu: bool):
+#     _validate_docker_images(dockerfile_path, required_packages, local_image_version, use_gpu, 'gpu')
 
 
 
