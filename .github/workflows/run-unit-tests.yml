@@ -1,0 +1,54 @@
+name: Run Unit Tests
+on:
+  workflow_dispatch:
+    inputs:
+      PR:
+        required: True
+        type: number
+        description: PR to test
+  workflow_call:
+    inputs:
+      PR:
+        required: True
+        type: string
+jobs:
+  call-codebuild-project:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+      id-token: write
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::428449107377:role/SMDistroUnitTestingRole
+          aws-region: us-west-2
+      - name: Run CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@v1
+        with:
+          project-name: cosmos-unit-testing
+          compute-type-override: BUILD_GENERAL1_SMALL
+          image-override: |
+            763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-training:2.13.0-gpu-py310-cu118-ubuntu20.04-ec2
+          buildspec-override: |
+            version: 0.2
+            phases:
+              pre_build:
+                commands:
+                  - curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+                  - ./bin/micromamba shell init -s bash -p ~/micromamba
+                  - source ~/.bashrc
+              build:
+                commands:
+                  - ls
+                  - micromamba create -f environment.yml -n sagemaker-distribution -y
+                  - micromamba install -n sagemaker-distribution -c conda-forge -y gh
+                  - git status
+                  - micromamba run -n sagemaker-distribution gh pr checkout ${{github.event.inputs.PR}}
+#                  - conda env update --file environment.yml -n sagemaker-distribution
+#                  - conda activate sagemaker-distribution
+#                  - cd sagemaker-distribution
+#                  - python ./src/main.py build --target-patch-version $TARGET_VERSION \
+#                    --region us-west-2 \
+#                    --target-ecr-repo 428449107377.dkr.ecr.us-west-2.amazonaws.com/sagemaker-distribution
