@@ -234,10 +234,10 @@ def _build_local_images(target_version: Version, target_ecr_repo_list: list[str]
                 for t in image_tags_to_apply:
                     image.tag(target_ecr_repo, tag=t)
                     generated_image_versions.append({'repository': target_ecr_repo, 'tag': t})
-        else:
-            # Tag the image for testing
-            image.tag('localhost/sagemaker-distribution',
-                      config['image_tag_generator'].format(image_version=str(target_version)))
+
+        # Tag the image for testing
+        image.tag('localhost/sagemaker-distribution',
+                  config['image_tag_generator'].format(image_version=str(target_version)))
 
     return generated_image_ids, generated_image_versions
 
