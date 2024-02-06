@@ -26,6 +26,7 @@ from utils import (
 )
 
 _docker_client = docker.from_env()
+_docker_client.info()
 
 def create_and_get_semver_dir(version: Version, exist_ok: bool = False):
     dir = get_dir_for_version(version)
