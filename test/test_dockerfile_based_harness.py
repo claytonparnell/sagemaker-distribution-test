@@ -12,13 +12,13 @@ from utils import (
     get_match_specs,
 )
 
-_docker_client = docker.DockerClient(base_url='unix://var/run/docker.sock')
+_docker_client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
 
 @pytest.mark.cpu
 @pytest.mark.parametrize("dockerfile_path, required_packages", [
-    ("keras.test.Dockerfile", ['keras'])])
+    # ("keras.test.Dockerfile", ['keras'])])
     # ("autogluon.test.Dockerfile", ['autogluon']),
-    # ("matplotlib.test.Dockerfile", ['matplotlib']),
+    ("matplotlib.test.Dockerfile", ['matplotlib'])])
     # ("sagemaker-headless-execution-driver.test.Dockerfile", ['sagemaker-headless-execution-driver']),
     # ("scipy.test.Dockerfile", ['scipy']),
     # ("numpy.test.Dockerfile", ['numpy']),
