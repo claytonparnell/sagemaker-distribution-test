@@ -12,13 +12,11 @@ from utils import (
     get_match_specs,
 )
 
-_docker_client = docker.DockerClient(base_url='unix://var/run/docker.sock')
-
 @pytest.mark.cpu
 @pytest.mark.parametrize("dockerfile_path, required_packages", [
-    ("keras.test.Dockerfile", ['keras'])])
+    # ("keras.test.Dockerfile", ['keras'])])
     # ("autogluon.test.Dockerfile", ['autogluon']),
-    # ("matplotlib.test.Dockerfile", ['matplotlib']),
+    ("matplotlib.test.Dockerfile", ['matplotlib'])])
     # ("sagemaker-headless-execution-driver.test.Dockerfile", ['sagemaker-headless-execution-driver']),
     # ("scipy.test.Dockerfile", ['scipy']),
     # ("numpy.test.Dockerfile", ['numpy']),
@@ -106,6 +104,11 @@ def _check_required_package_constraints(target_version: Version, required_packag
 
 def _validate_docker_images(dockerfile_path: str, required_packages: List[str],
                             local_image_version: str, use_gpu: bool, image_type: str):
+
+    _docker_client = docker.from_env()
+    _docker_client.info()
+    import subprocess
+    subprocess.run('printenv')
     target_version = get_semver(local_image_version)
     test_artifacts_path = f'test/test_artifacts/v{str(target_version.major)}'
     _check_docker_file_existence(dockerfile_path, test_artifacts_path)

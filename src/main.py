@@ -24,8 +24,10 @@ from utils import (
     get_semver,
     get_match_specs
 )
-
+from subprocess import call
+call(["echo", "$DOCKER_HOST"])
 _docker_client = docker.from_env()
+_docker_client.info()
 
 def create_and_get_semver_dir(version: Version, exist_ok: bool = False):
     dir = get_dir_for_version(version)
