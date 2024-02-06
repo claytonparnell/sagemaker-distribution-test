@@ -13,10 +13,7 @@ on:
           - major
       base-version:
         required: true
-        description: Base version
-      target-version:
-        required: true
-        description: Target version
+        description: Base version=
   # Call from other workflow
   workflow_call:
     inputs:
@@ -26,12 +23,61 @@ on:
       base-version:
         type: string
         required: true
-      target-version:
-        type: string
-        required: true
+defaults:
+  run:
+    shell: bash -l {0}
 jobs:
+  open-pr:
+    name: Open Pull Request
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    outputs:
+      pr_id: ${{ steps.open_pr.outputs.pr_id }}
+      target_version: ${{ steps.calc_target.outputs.target_version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./environment.yml
+          environment-name: sagemaker-distribution
+          init-shell: bash
+      - name: Free up disk space
+        run: rm -rf /opt/hostedtoolcache
+      - name: Activate sagemaker-distribution
+        run: micromamba activate sagemaker-distribution
+      - name: Calculate target version
+        id: calc_target
+        run: |
+          TARGET_VERSION=$(python -c 'import semver; print(semver.bump_${{ github.event.inputs.release-type }}("${{ github.event.inputs.base-version }}"))')
+          echo "target_version=$TARGET_VERSION" >> $GITHUB_OUTPUT
+      - name: Create new branch
+        run: git checkout -b release-${{ steps.calc_target.outputs.target_version }}
+      - name: Generate artifacts
+        run: python ./src/main.py create-${{ github.event.inputs.release-type }}-version-artifacts --base-patch-version ${{ github.event.inputs.base-version }}
+      - name: Commit .in artifacts to branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add ./build_artifacts
+          git commit -m 'chore: Generate build artifacts for ${{ steps.calc_target.outputs.target_version }} release'
+          git push --set-upstream origin release-${{ steps.calc_target.outputs.target_version }}
+      - name: Open pull request
+        id: open_pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          URL=$(gh pr create -H release-${{ steps.calc_target.outputs.target_version }} \
+                    --title 'release: v${{ steps.calc_target.outputs.target_version }}' --body 'Created by GitHub Action')
+          PR=$(echo $URL | sed 's:.*/::')
+          echo "pr_id=$PR" >> $GITHUB_OUTPUT
   call-codebuild-project:
     runs-on: ubuntu-latest
+    if: github.repository == 'claytonparnell/sagemaker-distribution-test'
+    needs: open-pr
     permissions:
       pull-requests: write
       contents: write
@@ -43,36 +89,15 @@ jobs:
           role-to-assume: arn:aws:iam::428449107377:role/SMDistroUnitTestingRole
           aws-region: us-west-2
       - name: Run CodeBuild
-        uses: aws-actions/aws-codebuild-run-build@v1
+        uses: dark-mechanicum/aws-codebuild@v1
+        env:
+          CODEBUILD__sourceVersion: 'pr/${{ needs.open-pr.outputs.pr_id }}'
         with:
-          project-name: cosmos-unit-testing
-          image-override: mambaorg/micromamba:jammy-cuda-11.8.0
-          buildspec-override: |
-            version: 0.2
-            phases:
-              pre_build:
-                commands:
-                  - apt-get update
-                  - apt-get install -y --no-install-recommends git docker.io
-                  - git config --global user.email "github-actions[bot]@users.noreply.github.com"
-                  - git config --global user.name "github-actions[bot]"
-                  - micromamba create -f environment.yml -n sagemaker-distribution -y
-                  - micromamba install -n sagemaker-distribution -c conda-forge -y gh
-                  # Start Docker - https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker-custom-image.html#sample-docker-custom-image-files
-                  - nohup dockerd --host=unix:///var/run/docker.sock --host=tcp://127.0.0.1:2375 --storage-driver=overlay2&
-                  - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
-              build:
-                commands:
-                  - echo Creating new branch for release
-                  - git checkout -b ${{ github.event.inputs.release-type }}-release-v${{github.event.inputs.target-version}}
-                  - echo Generate build artifacts
-                  - micromamba run -n sagemaker-distribution python ./src/main.py create-${{ github.event.inputs.release-type }}-version-artifacts --base-patch-version ${{ github.event.inputs.base-version }}
-                  - git add ./build_artifacts
-                  - "git commit -m 'chore: Generate build artifacts for ${{ github.event.inputs.target-version }} release'"
-                  - echo Building/Testing/Pushing Image
-                  - micromamba run -n sagemaker-distribution python ./src/main.py build --target-patch-version ${{ github.event.inputs.target-version }} --force --target-ecr-repo public.ecr.aws/sagemaker/sagemaker-distribution --region us-east-1 >> TEST_RESULTS.txt
-                  - micromamba run -n sagemaker-distribution python ./src/main.py generate-staleness-report --target-patch-version ${{github.event.inputs.target-version}} >> STALENESS_REPORT.md
-                  - "git commit -m 'chore: Add post-build artifact files for ${{ github.event.inputs.target-version }} release'"
-                  - "URL=$(micromamba run -n sagemaker-distribution gh pr create -H ${{github.event.inputs.release-type}}-release-${{github.event.inputs.target-version}} \
-                    --title 'release: New ${{ github.event.inputs.release-type }} release ${{ github.event.inputs.target-version }}' -F STALENESS_REPORT.md)"
-                  - micromamba run -n sagemaker-distribution gh pr comment $URL -F TEST_RESULTS.txt
+          projectName: cosmos-unit-testing
+          buildspec: '{
+              "environmentVariablesOverride":[
+                { "name":"PR_ID", "value":"${{ needs.open-pr.outputs.pr_id }}", "type": "PLAINTEXT" },
+                { "name":"TARGET_VERSION", "value":"${{ needs.open-pr.outputs.target_version }}", "type": "PLAINTEXT" },
+                { "name":"RELEASE_TYPE", "value":"${{ github.event.inputs.release-type }}", "type": "PLAINTEXT" }
+              ]
+            }'
