@@ -12,6 +12,8 @@ from utils import (
     get_match_specs,
 )
 
+_docker_client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
+_docker_client.info()
 @pytest.mark.cpu
 @pytest.mark.parametrize("dockerfile_path, required_packages", [
     # ("keras.test.Dockerfile", ['keras'])])
