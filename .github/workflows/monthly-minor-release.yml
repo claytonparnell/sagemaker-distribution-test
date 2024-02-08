@@ -1,0 +1,43 @@
+name: Generate monthly minor release(s)
+on:
+  # Run every Monday at 8AM PST / 9AM PDT
+  schedule:
+    - cron: '0 16 1-7 * 1'
+  # Manually call (temporary)
+  workflow_dispatch:
+jobs:
+  generate-version-matrix:
+    name: Generate version matrix
+    runs-on: ubuntu-latest
+    if: github.repository == 'claytonparnell/sagemaker-distribution-test'
+    outputs:
+      matrix: ${{ steps.gen-mat.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate base patch version matrix
+        id: gen-mat
+        run: |
+          versions=("{\"version\":[")
+          for major in build_artifacts/v*; do
+            highest_minor=$(ls $major | sort -t. -k2n | tail -n1)
+            highest_patch=$(ls $major/$highest_minor | sort -t. -k2n | tail -n1)
+            versions+="\"${highest_patch#v}\""
+            versions+=","
+          done
+          versions=${versions::-1}
+          versions+="]}"
+          echo "matrix=$versions" >> $GITHUB_OUTPUT
+  start-monthly-minor:
+    name: Start monthly minor release
+    needs: generate-version-matrix
+    permissions:
+      pull-requests: write
+      contents: write
+      id-token: write
+    strategy:
+      matrix: ${{ fromJson(needs.generate-version-matrix.outputs.matrix) }}
+      fail-fast: false
+    uses: claytonparnell/sagemaker-distribution-test/.github/workflows/build-image.yml@main
+    with:
+      release-type: "minor"
+      base-version: ${{ matrix.version }}
