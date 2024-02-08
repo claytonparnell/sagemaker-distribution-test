@@ -147,7 +147,7 @@ def _validate_docker_images(dockerfile_path: str, required_packages: List[str],
     # A consequence of this design decision is that any test assertions should go inside the container's entry-point.
 
     container = _docker_client.containers.run(image=image.id, detach=True, stderr=True,
-                                      device_requests=device_requests)
+                                      device_requests=device_requests, privileged=True)
     # Wait till container completes execution
     result = container.wait()
     exit_code = result["StatusCode"]
