@@ -1,0 +1,36 @@
+name: Matrix testing
+on:
+  # Manually call
+  workflow_dispatch
+defaults:
+  run:
+    shell: bash -l {0}
+jobs:
+  generate-matrix:
+    name: Generate-matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gen-mat.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate the matrix
+        id: gen-mat
+        run: |
+          versions=("{\"version\":[")
+          for minor in build_artifacts/v*/*; do
+            minor_version="${minor##*/}"
+            highest_patch=$(ls $minor | sort -t. -k3,3n | tail -n1)
+            versions+="\"${highest_patch#v}\""
+            versions+=","
+          done
+          versions=${versions::-1}
+          versions+="]}"
+          echo "matrix=$versions" >> $GITHUB_OUTPUT
+  print-each:
+    runs-on: ubuntu-latest
+    needs: generate-matrix
+    strategy:
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    steps:
+      - name: Printing
+        run: echo ${{ matrix.version }}

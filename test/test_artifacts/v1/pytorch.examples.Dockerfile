@@ -9,6 +9,9 @@ RUN sudo apt-get update && \
 
 WORKDIR "examples"
 
+RUN ln -s /usr/lib/x86_64-linux-gnu/libcuda.so.1 /usr/lib/x86_64-linux-gnu/libcuda.so && \
+    export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+
 # There is a line in run_python_examples.sh which looks like: BASE_DIR=`pwd`"/"`dirname $0`
 # When we run the shell script through /usr/local/bin/_entrypoint.sh, that line above doesn't work correctly. In our
 # case, we properly set `pwd` to the directory that contains all the examples, so we just modify the script to change
