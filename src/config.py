@@ -9,7 +9,7 @@ _image_generator_configs = [
         'additional_packages_env_in_file': 'gpu.additional_packages_env.in',
         'image_tag_generator': '{image_version}-gpu',
         'env_out_filename': 'gpu.env.out',
-        'pytest_flags': ['--use-gpu'],
+        'pytest_flags': ['--use-gpu', '--shm-size', '256m'],
         'image_type': 'gpu'
     },
     {
