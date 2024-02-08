@@ -106,6 +106,11 @@ def _check_required_package_constraints(target_version: Version, required_packag
 
 def _validate_docker_images(dockerfile_path: str, required_packages: List[str],
                             local_image_version: str, use_gpu: bool, image_type: str):
+
+    _docker_client = docker.from_env()
+    _docker_client.info()
+    import subprocess
+    subprocess.run('printenv')
     target_version = get_semver(local_image_version)
     test_artifacts_path = f'test/test_artifacts/v{str(target_version.major)}'
     _check_docker_file_existence(dockerfile_path, test_artifacts_path)
