@@ -39,9 +39,7 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.generate-version-matrix.outputs.matrix) }}
       fail-fast: false
-    uses: claytonparnell/sagemaker-distribution-test/.github/workflows/build-image.yml@main
+    uses: ./.github/workflows/build-image.yml@main
     with:
       release-type: "minor"
       base-version: ${{ matrix.version }}
-    secrets:
-      token: ${{ github.token }}
