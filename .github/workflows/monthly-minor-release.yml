@@ -43,3 +43,4 @@ jobs:
     with:
       release-type: "minor"
       base-version: ${{ matrix.version }}
+    secrets: inherit
