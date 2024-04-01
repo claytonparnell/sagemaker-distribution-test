@@ -1,5 +1,7 @@
 name: Generate monthly minor release(s)
 on:
+  # Manually call
+  workflow_dispatch:
   # Run first day of the month at 8AM PST / 9AM PDT
   schedule:
     - cron: '0 16 1 * *'
