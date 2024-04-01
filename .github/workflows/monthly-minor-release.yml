@@ -9,7 +9,6 @@ jobs:
   generate-version-matrix:
     name: Generate version matrix
     runs-on: ubuntu-latest
-    if: github.repository == 'aws/sagemaker-distribution'
     outputs:
       matrix: ${{ steps.gen-mat.outputs.matrix }}
     steps:
