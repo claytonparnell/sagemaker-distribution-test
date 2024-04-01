@@ -43,3 +43,5 @@ jobs:
     with:
       release-type: "minor"
       base-version: ${{ matrix.version }}
+    secrets:
+      token: ${{ github.token }}
