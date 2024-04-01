@@ -39,7 +39,7 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.generate-version-matrix.outputs.matrix) }}
       fail-fast: false
-    uses: ./.github/workflows/build-image.yml@main
+    uses: ./.github/workflows/build-image.yml
     with:
       release-type: "minor"
       base-version: ${{ matrix.version }}
