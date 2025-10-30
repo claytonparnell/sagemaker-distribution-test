@@ -1,7 +1,7 @@
 # Framework Support Policy
 Amazon SageMaker Distribution is a set of Docker images that include popular frameworks for machine learning, data science, and visualization. This page details the framework support policy for SageMaker Distribution Images.
 
-## Support Policy 
+## Support Policy
 The table below outlines the release schedule for SageMaker Distribution Image versions and their planned support timelines. AWS provides ongoing functionality and security updates for supported image versions. In some cases, an image version may need to be designated end of support earlier than originally planned if (a) security issues cannot be addressed while maintaining semantic versioning guidelines or (b) any of our major dependencies, like Python, reach end-of-life. AWS can release ad-hoc major or minor versions on an as-needed basis.
 
 | Version | Description | Release Cadence |
